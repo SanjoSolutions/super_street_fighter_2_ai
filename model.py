@@ -22,11 +22,11 @@ Y_ON_GROUND = 192
 class Player:
     def __init__(self, player_index):
         self.player_index = player_index
-        self.buffered_actions = []
+        self.queued_actions = []
 
     def choose_action(self, info):
-        if len(self.buffered_actions) >= 1:
-            action = self.buffered_actions.pop(0)
+        if len(self.queued_actions) >= 1:
+            action = self.dequeue_action()
         else:
             if info[self.suffix_player_name('active')] == 0:
                 if self.should_air_defend(info):
@@ -45,6 +45,12 @@ class Player:
                 action = self.crouch_block(info)
 
         return action
+
+    def queue_actions(self, actions):
+        self.queued_actions.extend(actions)
+
+    def dequeue_action(self):
+        return self.queued_actions.pop(0)
 
     def is_character_on_left(self, info):
         return info[self.suffix_player_name('x')] <= info[self.suffix_other_player_name('x')]
@@ -113,8 +119,8 @@ class Player:
                 Actions.DOWN,
                 Actions.LEFT_DOWN_HEAVY_PUNCH
             ]
-        action = actions.pop(0)
-        self.buffered_actions.extend(actions)
+        self.queue_actions(actions)
+        action = self.dequeue_action()
         return action
 
     def throw(self, info):
@@ -151,8 +157,8 @@ class Player:
                 Actions.LEFT_DOWN,
                 Actions.LEFT_HEAVY_PUNCH
             ]
-        action = actions.pop(0)
-        self.buffered_actions.extend(actions)
+        self.queue_actions(actions)
+        action = self.dequeue_action()
         return action
 
     def suffix_player_name(self, string):
@@ -175,8 +181,8 @@ def generate_player_name(player_index):
 
 class PlayerHadouken(Player):
     def choose_action(self, info):
-        if len(self.buffered_actions) >= 1:
-            action = self.buffered_actions.pop(0)
+        if len(self.queued_actions) >= 1:
+            action = self.dequeue_action()
         else:
             if info[self.suffix_player_name('active')] == 0:
                 if self.can_hadouken(info):
