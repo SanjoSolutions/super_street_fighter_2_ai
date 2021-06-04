@@ -1,16 +1,14 @@
 from create_environment import create_environment
-from model import Player, Actions
+from model import Actions
 
 
 class Runner:
-    def __init__(self):
+    def __init__(self, players, state):
         self.environment = create_environment(
-            state='ryu_vs_ken_highest_difficulty',
-            players=1,
+            state=state,
+            players=len(players),
         )
-        self.players = (
-            Player(0),
-        )
+        self.players = players
         self.done = False
         self.info = None
         self.reset()

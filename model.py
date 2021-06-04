@@ -16,6 +16,9 @@ class Actions(IntEnum):
     RIGHT_DOWN_HEAVY_PUNCH = 34
 
 
+Y_ON_GROUND = 192
+
+
 class Player:
     def __init__(self, player_index):
         self.player_index = player_index
@@ -25,16 +28,16 @@ class Player:
         if len(self.buffered_actions) >= 1:
             action = self.buffered_actions.pop(0)
         else:
-            if info['active_p1'] == 0:
-                if should_air_defend(info):
+            if info[self.suffix_player_name('active')] == 0:
+                if self.should_air_defend(info):
                     action = self.air_defend(info)
-                elif should_throw(info):
+                elif self.should_throw(info):
                     action = self.throw(info)
-                elif should_block_standing(info):
+                elif self.should_block_standing(info):
                     action = self.standing_block(info)
-                elif should_crouch_block(info):
+                elif self.should_crouch_block(info):
                     action = self.crouch_block(info)
-                elif should_hadouken(info):
+                elif self.should_hadouken(info):
                     action = self.hadouken(info)
                 else:
                     action = self.crouch_block(info)
@@ -43,8 +46,62 @@ class Player:
 
         return action
 
+    def is_character_on_left(self, info):
+        return info[self.suffix_player_name('x')] <= info[self.suffix_other_player_name('x')]
+
+    def should_air_defend(self, info):
+        return (
+                self.x_distance(info) <= 32 and
+                info[self.suffix_other_player_name('y')] < Y_ON_GROUND and
+                is_opponent_jumping(info[self.suffix_other_player_name('sprite_id_next_frame')])
+        )
+
+    def should_throw(self, info):
+        return self.is_opponent_in_throw_range(info) and self.is_opponent_inactive(info)
+
+    def is_opponent_in_throw_range(self, info):
+        return 18 < self.x_distance(info) <= 33 and info[self.suffix_other_player_name('y')] == Y_ON_GROUND
+
+    def is_opponent_inactive(self, info):
+        return info[self.suffix_other_player_name('active')] == 0
+
+    def should_block_standing(self, info):
+        opponent_sprite_id = info[self.suffix_other_player_name('sprite_id_next_frame')]
+        return (
+                (is_opponent_jumping(opponent_sprite_id) or is_opponent_upper_cutting()) and
+                self.is_opponent_close_by(info)
+        )
+
+    def should_crouch_block(self, info):
+        return self.is_opponent_close_by(info)
+
+    def should_hadouken(self, info):
+        return (
+            self.can_hadouken(info) and
+            self.x_distance(info) > 145 and
+            (
+                    info[self.suffix_other_player_name('projectile_active') + '_1'] == 0 or
+                    distance(
+                        info[self.suffix_other_player_name('x_projectile')],
+                        info[self.suffix_player_name('x')]
+                    ) > 104
+            )
+        )
+
+    def can_hadouken(self, info):
+        return (
+            info[self.suffix_player_name('projectile_active') + '_1'] == 0 and
+            info[self.suffix_player_name('hit')] == 0
+        )
+
+    def is_opponent_close_by(self, info):
+        return self.x_distance(info) <= 71
+
+    def x_distance(self, info):
+        return distance(info[self.suffix_player_name('x')], info[self.suffix_other_player_name('x')])
+
     def air_defend(self, info):
-        if is_character_on_left(info):
+        if self.is_character_on_left(info):
             actions = [
                 Actions.RIGHT,
                 Actions.DOWN,
@@ -61,28 +118,28 @@ class Player:
         return action
 
     def throw(self, info):
-        if is_character_on_left(info):
+        if self.is_character_on_left(info):
             action = Actions.RIGHT_HEAVY_PUNCH
         else:
             action = Actions.LEFT_HEAVY_PUNCH
         return action
 
     def standing_block(self, info):
-        if is_character_on_left(info):
+        if self.is_character_on_left(info):
             action = Actions.LEFT
         else:
             action = Actions.RIGHT
         return action
 
     def crouch_block(self, info):
-        if is_character_on_left(info):
+        if self.is_character_on_left(info):
             action = Actions.LEFT_DOWN
         else:
             action = Actions.RIGHT_DOWN
         return action
 
     def hadouken(self, info):
-        if is_character_on_left(info):
+        if self.is_character_on_left(info):
             actions = [
                 Actions.DOWN,
                 Actions.RIGHT_DOWN,
@@ -98,55 +155,37 @@ class Player:
         self.buffered_actions.extend(actions)
         return action
 
+    def suffix_player_name(self, string):
+        return suffix_player_name(string, generate_player_name(self.player_index))
 
-def is_character_on_left(info):
-    return info['x_p1'] <= info['x_p2']
+    def suffix_other_player_name(self, string):
+        return suffix_player_name(string, generate_player_name(self.determine_other_player_index()))
 
-
-Y_ON_GROUND = 192
-
-
-def should_air_defend(info):
-    return (
-        x_distance(info) <= 32 and
-        info['y_p2'] < Y_ON_GROUND and
-        is_opponent_jumping(info['sprite_id_next_frame_p2'])
-    )
+    def determine_other_player_index(self):
+        return (self.player_index + 1) % 2
 
 
-def should_throw(info):
-    return is_opponent_in_throw_range(info) and is_opponent_inactive(info)
+def suffix_player_name(string, player_name):
+    return string + '_' + player_name
 
 
-def is_opponent_in_throw_range(info):
-    return 18 < x_distance(info) <= 33 and info['y_p2'] == Y_ON_GROUND
+def generate_player_name(player_index):
+    return 'p' + str(player_index + 1)
 
 
-def is_opponent_inactive(info):
-    return info['active_p2'] == 0
-
-
-def should_block_standing(info):
-    opponent_sprite_id = info['sprite_id_next_frame_p2']
-    return (
-        (is_opponent_jumping(opponent_sprite_id) or is_opponent_upper_cutting()) and
-        is_opponent_close_by(info)
-    )
-
-
-def should_crouch_block(info):
-    return is_opponent_close_by(info)
-
-
-def should_hadouken(info):
-    return (
-        info['projectile_active_p1_1'] == 0 and
-        x_distance(info) > 145 and
-        (
-            info['projectile_active_p2_1'] == 0 or
-            distance(info['x_projectile_p2'], info['x_p1']) > 104
-        )
-    )
+class PlayerHadouken(Player):
+    def choose_action(self, info):
+        if len(self.buffered_actions) >= 1:
+            action = self.buffered_actions.pop(0)
+        else:
+            if info[self.suffix_player_name('active')] == 0:
+                if self.can_hadouken(info):
+                    action = self.hadouken(info)
+                else:
+                    action = Actions.IDLE
+            else:
+                action = Actions.IDLE
+        return action
 
 
 def determine_jump_sprite_ids(moves):
@@ -169,14 +208,6 @@ def is_opponent_jumping(opponent_sprite_id):
 def is_opponent_upper_cutting():
     # Ken seems to have no upper cut
     return False
-
-
-def is_opponent_close_by(info):
-    return x_distance(info) <= 71
-
-
-def x_distance(info):
-    return distance(info['x_p1'], info['x_p2'])
 
 
 def distance(a, b):

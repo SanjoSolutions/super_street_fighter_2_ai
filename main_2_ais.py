@@ -7,8 +7,9 @@ def main():
     runner = Runner(
         players=(
             Player(0),
+            PlayerHadouken(1)
         ),
-        state='ryu_vs_ken_highest_difficulty'
+        state='ryu_vs_ryu_both_controlled'
     )
     scheduler = Scheduler(runner.on_frame, fps=40)
     scheduler.run()
