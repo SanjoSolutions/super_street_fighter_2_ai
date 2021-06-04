@@ -1,0 +1,3 @@
+[submodule "SuperStreetFighter2-Snes"]
+	path = SuperStreetFighter2-Snes
+	url = git@github.com:SanjoSolutions/SuperStreetFighter2-Snes.git
