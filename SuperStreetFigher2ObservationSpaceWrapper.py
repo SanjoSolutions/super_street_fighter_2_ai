@@ -130,7 +130,6 @@ def generate_character_observations(character_observations):
             1 if character_observations['hp'] > character_observations['other_character_hp'] else 0,  # more hp than other player
             character_observations['x'] < character_observations['other_character_x'],  # is on left
             character_observations['x'] > character_observations['other_character_x'],  # is on right
-            # TODO: is jumping
         ),
         create_projectile_sprite_id_embedding(character_observations['sprite_id_next_frame_projectile']),
         (
