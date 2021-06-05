@@ -33,7 +33,7 @@ class Player:
         return action
 
     def _choose_action(self, info):
-        if info[self.suffix_player_name('active')] == 0:
+        if self.can_do_move(info):
             if self.should_air_defend(info):
                 action = self.air_defend(info)
             elif self.should_throw(info):
@@ -49,6 +49,12 @@ class Player:
         else:
             action = self.crouch_block(info)
         return action
+
+    def can_do_move(self, info):
+        return (
+            info[self.suffix_player_name('active')] == 0 and
+            info[self.suffix_player_name('disabled_time_left')] == 0
+        )
 
     def queue_actions(self, actions):
         self.queued_actions.extend(actions)
@@ -185,7 +191,7 @@ def generate_player_name(player_index):
 
 class PlayerHadouken(Player):
     def _choose_action(self, info):
-        if info[self.suffix_player_name('active')] == 0:
+        if self.can_do_move(info):
             if self.can_hadouken(info):
                 action = self.hadouken(info)
             else:
