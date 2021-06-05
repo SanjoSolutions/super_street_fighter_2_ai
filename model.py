@@ -28,22 +28,26 @@ class Player:
         if len(self.queued_actions) >= 1:
             action = self.dequeue_action()
         else:
-            if info[self.suffix_player_name('active')] == 0:
-                if self.should_air_defend(info):
-                    action = self.air_defend(info)
-                elif self.should_throw(info):
-                    action = self.throw(info)
-                elif self.should_block_standing(info):
-                    action = self.standing_block(info)
-                elif self.should_crouch_block(info):
-                    action = self.crouch_block(info)
-                elif self.should_hadouken(info):
-                    action = self.hadouken(info)
-                else:
-                    action = self.crouch_block(info)
+            action = self._choose_action(info)
+
+        return action
+
+    def _choose_action(self, info):
+        if info[self.suffix_player_name('active')] == 0:
+            if self.should_air_defend(info):
+                action = self.air_defend(info)
+            elif self.should_throw(info):
+                action = self.throw(info)
+            elif self.should_block_standing(info):
+                action = self.standing_block(info)
+            elif self.should_crouch_block(info):
+                action = self.crouch_block(info)
+            elif self.should_hadouken(info):
+                action = self.hadouken(info)
             else:
                 action = self.crouch_block(info)
-
+        else:
+            action = self.crouch_block(info)
         return action
 
     def queue_actions(self, actions):
@@ -180,17 +184,14 @@ def generate_player_name(player_index):
 
 
 class PlayerHadouken(Player):
-    def choose_action(self, info):
-        if len(self.queued_actions) >= 1:
-            action = self.dequeue_action()
-        else:
-            if info[self.suffix_player_name('active')] == 0:
-                if self.can_hadouken(info):
-                    action = self.hadouken(info)
-                else:
-                    action = Actions.IDLE
+    def _choose_action(self, info):
+        if info[self.suffix_player_name('active')] == 0:
+            if self.can_hadouken(info):
+                action = self.hadouken(info)
             else:
                 action = Actions.IDLE
+        else:
+            action = Actions.IDLE
         return action
 
 
